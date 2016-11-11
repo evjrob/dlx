@@ -30,6 +30,8 @@ type matrixElement interface {
 	setRowIndex(int)
 	parentColumn() *columnHeader
 	setParentColumn(*columnHeader)
+	parentRow() matrixElement
+	setParentRow(matrixElement)
 	up() matrixElement
 	down() matrixElement
 	left() matrixElement
@@ -44,6 +46,7 @@ type matrixElement interface {
 type node struct {
 	rowInd                            int
 	parentColumnPtr                   *columnHeader
+	parentRowPtr											matrixElement
 	upPtr, downPtr, leftPtr, rightPtr matrixElement
 }
 
@@ -58,6 +61,12 @@ func (n *node) parentColumn() *columnHeader {
 }
 func (n *node) setParentColumn(c2 *columnHeader) {
 	n.parentColumnPtr = c2
+}
+func (n *node) parentRow() matrixElement{
+	return n.parentRowPtr
+}
+func (n *node) setParentRow(e matrixElement) {
+	n.parentRowPtr = e
 }
 func (n *node) up() matrixElement {
 	return n.upPtr
@@ -116,6 +125,7 @@ func NewMatrix(columnCount int) Matrix {
 		head := &columnHeaders[i]
 		head.setRowIndex(-1)
 		head.setParentColumn(head)
+		head.setParentRow(&columnHeaders[0])
 		head.setUp(head)
 		head.setDown(head)
 		if i == 0 {
@@ -144,6 +154,7 @@ func (m *matrix) AddRow(rowIndeces []int) int {
 		downNode := column.up()
 		currentNode.setRowIndex(m.rowCount)
 		currentNode.setParentColumn(column)
+		currentNode.setParentRow(&row[0])
 		column.incrementLen() // Increase the length of this column by 1
 		// Set the currentNode up and down pointers
 		currentNode.setUp(downNode)
@@ -220,7 +231,8 @@ func uncover(column *columnHeader) {
 
 func (m *matrix) getSolution() (solution map[int][]int) {
 	solution = make(map[int][]int)
-	for _, rowStart := range m.solutionRows {
+	for _, row := range m.solutionRows {
+		rowStart := row.parentRow()
 		rowIndex := rowStart.rowIndex()
 		solution[rowIndex] = []int{rowStart.parentColumn().columnIndex()}
 		rowNode := rowStart.right()
